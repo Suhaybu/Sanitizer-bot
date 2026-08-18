@@ -1,4 +1,5 @@
-//! This code originally used libsql and was ported to turso using an LLM.
+//! All the database operations are stored in this module.
+//! (Ported to Turso from libsql using an LLM)
 
 use anyhow::Context;
 use serde::{Deserialize, Serialize};

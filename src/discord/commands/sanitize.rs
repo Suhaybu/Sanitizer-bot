@@ -13,7 +13,7 @@ use twilight_model::http::interaction::{InteractionResponse, InteractionResponse
 use twilight_model::oauth::ApplicationIntegrationType;
 use twilight_util::builder::command::{BooleanBuilder, CommandBuilder, StringBuilder};
 
-use crate::utils::sanitize::UrlProcessor;
+use crate::sanitize::UrlProcessor;
 
 pub struct SanitizeCommand;
 

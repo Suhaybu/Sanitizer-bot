@@ -1,7 +1,4 @@
-mod cache;
-mod database;
-pub mod sanitize;
+pub mod cache;
+mod helper;
 
-pub use cache::{ConfigCache, config_cache};
-pub use database::{MessageAuthor, ResponseMap, ServerConfig, init_database};
-pub use sanitize::unsupress_embeds;
+pub use helper::{contains_url, get_links, is_bot_mentioned, unsupress_embeds};

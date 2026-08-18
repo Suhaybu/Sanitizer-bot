@@ -19,10 +19,11 @@ use twilight_util::builder::message::{
     SeparatorBuilder, TextDisplayBuilder,
 };
 
+use crate::db::ServerConfig;
 use crate::discord::models::{
     DeletePermission, HideOriginalEmbed, SanitizerMode, SettingsMenuType,
 };
-use crate::utils::{ServerConfig, config_cache};
+use crate::utils::cache;
 
 pub struct SettingsCommand;
 
@@ -73,7 +74,7 @@ impl SettingsCommand {
         }
 
         // Get current server configuration
-        let config = config_cache().get_or_fetch(guild_id.get()).await?;
+        let config = cache::load().get_or_fetch(guild_id.get()).await?;
 
         let settings_container = Self::construct_container(&config);
         let data = InteractionResponseDataBuilder::new()
@@ -114,7 +115,7 @@ impl SettingsCommand {
         tracing::debug!("Selected value from dropdown: '{}'", selected_value);
         tracing::debug!("Menu type: {:?}", menu_type);
 
-        let cache = config_cache();
+        let cache = cache::load();
         let mut config = cache.get_or_fetch(guild_id.get()).await?;
 
         // Update the appropriate setting

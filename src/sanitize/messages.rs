@@ -6,11 +6,10 @@ use twilight_model::channel::message::{
     AllowedMentions, Component, EmojiReactionType, MessageFlags, MessageType,
 };
 
-use crate::BOT_USER_ID;
+use crate::db::{ResponseMap, ServerConfig};
 use crate::discord::models::{DeletePermission, SanitizerMode};
-use crate::utils::database::{ResponseMap, ServerConfig};
-use crate::utils::sanitize::UrlProcessor;
-use crate::utils::sanitize::core::get_links;
+use crate::sanitize::UrlProcessor;
+use crate::utils;
 
 /// Converts the URL in a message if there is a valid URL.
 pub async fn process_message(
@@ -19,7 +18,7 @@ pub async fn process_message(
     server_config: Option<ServerConfig>,
 ) -> anyhow::Result<()> {
     let mut target_message = message;
-    let mut all_links = get_links(target_message);
+    let mut all_links = utils::get_links(target_message);
 
     if all_links.is_empty() {
         let fallback = if let Some(config) = server_config.as_ref()
@@ -35,7 +34,7 @@ pub async fn process_message(
         // Updates the target message to ref_msg
         if let Some(ref_msg) = fallback {
             target_message = ref_msg;
-            all_links = get_links(target_message);
+            all_links = utils::get_links(target_message);
         }
     }
 
@@ -206,26 +205,4 @@ pub async fn add_emote(message: &Message, client: &Client) -> anyhow::Result<()>
         .await?;
 
     Ok(())
-}
-
-/// Unsupresses a message's embed.
-pub async fn unsupress_embeds(message: &Message, client: &Client) -> anyhow::Result<()> {
-    let current_flags = message.flags.unwrap_or(MessageFlags::empty());
-    let new_flags = current_flags - MessageFlags::SUPPRESS_EMBEDS;
-
-    client
-        .update_message(message.channel_id, message.id)
-        .flags(new_flags)
-        .await?;
-
-    Ok(())
-}
-
-pub fn is_bot_mentioned(message: &Message) -> bool {
-    let bot_user_id = BOT_USER_ID.get().expect("BOT_USER_ID not initialized");
-
-    message
-        .mentions
-        .iter()
-        .any(|mention| &mention.id == bot_user_id)
 }

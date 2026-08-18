@@ -2,7 +2,6 @@ use std::sync::LazyLock;
 
 use anyhow::{Context, Ok};
 use regex::{Regex, RegexSet, RegexSetBuilder};
-use twilight_model::channel::Message;
 
 // Regex's for capturing urls.
 const INSTAGRAM_URL_PATTERN: &str =
@@ -54,7 +53,7 @@ static REGEX_SET: LazyLock<anyhow::Result<RegexSet>> = LazyLock::new(|| {
 });
 
 #[derive(Debug, Clone, Copy)]
-pub enum Platform {
+enum Platform {
     Instagram = 0,
     Reddit = 1,
     TikTok = 2,
@@ -63,7 +62,7 @@ pub enum Platform {
 }
 
 impl Platform {
-    pub fn try_detect(input: &str) -> Option<Self> {
+    fn try_detect(input: &str) -> Option<Self> {
         let regex_set = REGEX_SET.as_ref().ok()?;
         let matches = regex_set.matches(input);
         tracing::debug!("Trying to detect a match in the url.");
@@ -71,7 +70,7 @@ impl Platform {
         matches.iter().next().and_then(Self::from_index)
     }
 
-    pub const fn display_name(&self) -> &'static str {
+    const fn display_name(&self) -> &'static str {
         match self {
             Self::Instagram => "Instagram",
             Self::Reddit => "Reddit",
@@ -370,27 +369,4 @@ impl UrlProcessor {
         };
         Ok(author)
     }
-}
-
-// A simple & fast pre-check to see if a url is present.
-pub fn contains_url(input: &str) -> bool {
-    let input = input.to_lowercase();
-    input.contains("instagram.com")
-        || input.contains("reddit.com")
-        || input.contains("tiktok.com")
-        // || input.contains("twitch.tv")
-        || input.contains("twitter.com")
-        || input.contains("x.com")
-}
-
-pub fn get_links(msg: &Message) -> Vec<&str> {
-    msg.content
-        .split_whitespace()
-        .filter(|word| contains_url(word))
-        .fold(Vec::new(), |mut unique, word| {
-            if !unique.contains(&word) {
-                unique.push(word);
-            }
-            unique
-        })
 }

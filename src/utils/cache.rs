@@ -61,6 +61,7 @@ impl ConfigCache {
     /// race the eviction count). If the key is already present:
     ///   - `overwrite = true`  -> replaces the stored value (explicit updates)
     ///   - `overwrite = false` -> leaves the existing value, just promotes it
+    ///
     /// New keys are always inserted and pushed into the LRU, evicting the
     /// least-recently-used entry if that puts the cache over capacity.
     fn upsert(&self, guild_id: u64, config: ServerConfig, overwrite: bool) {

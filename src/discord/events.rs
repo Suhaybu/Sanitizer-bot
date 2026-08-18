@@ -18,11 +18,11 @@ use twilight_model::id::Id;
 use twilight_util::builder::InteractionResponseDataBuilder;
 use twilight_util::builder::message::{ContainerBuilder, TextDisplayBuilder};
 
+use crate::db::{MessageAuthor, ResponseMap, ServerConfig};
 use crate::discord::commands;
 use crate::discord::models::{DeletePermission, SanitizerMode, SettingsMenuType};
-use crate::utils::{
-    MessageAuthor, ResponseMap, ServerConfig, config_cache, sanitize, unsupress_embeds,
-};
+use crate::utils::cache;
+use crate::{sanitize, utils};
 
 /// Handles all types of incomming events from Discord.
 pub async fn handle_event(event: Event, client: Arc<Client>) {
@@ -42,7 +42,7 @@ pub async fn handle_event(event: Event, client: Arc<Client>) {
                 //      Messages without URL are expected in SanitizerMode::ManualMention,
                 //      such messages can mention the bot in a reply where the message
                 //      referenced (replied to) has a valid URL.
-                || (!sanitize::contains_url(&ctx.0.content) && !(ctx.0.kind == MessageType::Reply))
+                || (!utils::contains_url(&ctx.0.content) && !(ctx.0.kind == MessageType::Reply))
                 // Special case: if message contains `—x`, ignore the message completely.
                 || ctx.0.content.contains("—x")
             {
@@ -115,7 +115,7 @@ async fn handle_message_delete(ctx: MessageDelete, client: &Client) -> anyhow::R
                     .await
                     .context("Failed to deserialize user message payload from Discord")?;
 
-                if let Err(e) = unsupress_embeds(&user_msg, client).await {
+                if let Err(e) = utils::unsupress_embeds(&user_msg, client).await {
                     tracing::debug!(error = ?e, "Failed to unsuppress original message embed");
                 }
             } else {
@@ -167,7 +167,7 @@ async fn handle_on_message(message: Message, client: &Client) -> anyhow::Result<
         sanitize::process_message(&message, client, None).await?;
         return Ok(());
     };
-    let server_config = config_cache().get_or_fetch(guild_id.get()).await?;
+    let server_config = cache::load().get_or_fetch(guild_id.get()).await?;
 
     match server_config.sanitizer_mode {
         SanitizerMode::Automatic => {
@@ -178,14 +178,14 @@ async fn handle_on_message(message: Message, client: &Client) -> anyhow::Result<
         }
         SanitizerMode::ManualMention => {
             // Early exit if not mentioned.
-            if !sanitize::is_bot_mentioned(&message) && message.kind != MessageType::Reply {
+            if !utils::is_bot_mentioned(&message) && message.kind != MessageType::Reply {
                 return Ok(());
             }
             sanitize::process_message(&message, client, Some(server_config)).await?;
         }
         SanitizerMode::ManualBoth => {
             sanitize::add_emote(&message, client).await?;
-            if !sanitize::is_bot_mentioned(&message) && message.kind != MessageType::Reply {
+            if !utils::is_bot_mentioned(&message) && message.kind != MessageType::Reply {
                 return Ok(());
             }
             sanitize::process_message(&message, client, Some(server_config)).await?;
@@ -360,9 +360,10 @@ async fn handle_delete_button(interaction: &Interaction, client: &Client) -> any
 
         // Handles unsupressing original embed.
         if server_config.hide_original_embed
-            && let Err(e) = unsupress_embeds(referenced_message, client).await {
-                tracing::warn!(error = ?e, "Failed to unsuppress original message embed");
-            }
+            && let Err(e) = utils::unsupress_embeds(referenced_message, client).await
+        {
+            tracing::warn!(error = ?e, "Failed to unsuppress original message embed");
+        }
     }
 
     Ok(())

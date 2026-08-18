@@ -1,4 +1,6 @@
+mod db;
 mod discord;
+mod sanitize;
 mod utils;
 
 use std::env;
@@ -21,7 +23,7 @@ use twilight_model::id::Id;
 use twilight_model::id::marker::{EmojiMarker, UserMarker};
 
 use crate::discord::{commands, handle_event};
-use crate::utils::ConfigCache;
+use crate::utils::cache::ConfigCache;
 
 // Flag that can be checked by any part of the program.
 static SHUTDOWN: AtomicBool = AtomicBool::new(false);
@@ -169,7 +171,7 @@ async fn prerun_init() -> anyhow::Result<()> {
 
     tracing::debug!("Logging initialized");
 
-    utils::init_database().await?;
+    db::init().await?;
 
     Ok(())
 }

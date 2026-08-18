@@ -1,4 +1,5 @@
-//! This code originally used libsql and was ported to turso using an LLM.
+//! Responsible for establishing the everything to do with the database connection.
+//! (Ported to Turso from libsql using an LLM)
 
 use std::ops::Deref;
 use std::time::Duration;
@@ -46,8 +47,18 @@ impl Drop for ReadConnGuard {
     }
 }
 
+unsafe impl Send for ReadConnGuard {}
+
+/// This function exists only as a safeguard for keeping track of Turso's crate code.
+/// If this function fails to compile, this means turso's internal code has changed.
+fn _assert_fields_send() {
+    fn is_send<T: Send>() {}
+    is_send::<turso::Connection>();
+    is_send::<tokio::sync::mpsc::Sender<turso::Connection>>();
+}
+
 /// Initialize database connection during pre run (main.rs).
-pub async fn init_database() -> anyhow::Result<()> {
+pub async fn init() -> anyhow::Result<()> {
     let db = init_database_internal().await?;
 
     let write_conn = db
@@ -119,11 +130,6 @@ pub async fn init_database() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn db() -> anyhow::Result<&'static Database> {
-    DB.get()
-        .context("Database has not been initialized; call init_database() first")
-}
-
 /// The single write connection. Callers MUST hold WRITE_LOCK for the
 /// entire duration they use it.
 pub fn get_write_connection() -> anyhow::Result<&'static Connection> {
@@ -157,6 +163,22 @@ pub fn request_push() {
     PUSH_NOTIFY.notify_one();
 }
 
+pub async fn pull_database() -> anyhow::Result<()> {
+    let _guard = WRITE_LOCK.lock().await;
+    tracing::debug!("Pulling changes from remote");
+    db()?
+        .pull()
+        .await
+        .context("Failed to pull changes from remote")?;
+    tracing::debug!("Database pull completed");
+    Ok(())
+}
+
+fn db() -> anyhow::Result<&'static Database> {
+    DB.get()
+        .context("Database has not been initialized; call init_database() first")
+}
+
 async fn push_worker() {
     loop {
         PUSH_NOTIFY.notified().await;
@@ -173,17 +195,6 @@ async fn push_database() -> anyhow::Result<()> {
         .push()
         .await
         .context("Failed to push local writes to remote")?;
-    Ok(())
-}
-
-pub async fn pull_database() -> anyhow::Result<()> {
-    let _guard = WRITE_LOCK.lock().await;
-    tracing::debug!("Pulling changes from remote");
-    db()?
-        .pull()
-        .await
-        .context("Failed to pull changes from remote")?;
-    tracing::debug!("Database pull completed");
     Ok(())
 }
 

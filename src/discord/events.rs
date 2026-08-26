@@ -43,8 +43,8 @@ pub async fn handle_event(event: Event, client: Arc<Client>) {
                 //      such messages can mention the bot in a reply where the message
                 //      referenced (replied to) has a valid URL.
                 || (!utils::contains_url(&ctx.0.content) && !(ctx.0.kind == MessageType::Reply))
-                // Special case: if message contains `—x`, ignore the message completely.
-                || ctx.0.content.contains("—x")
+                // Special case: if message contains `-x`, ignore the message completely.
+                || ctx.0.content.contains("-x")
             {
                 return;
             }

@@ -38,6 +38,8 @@ pub async fn process_message(
         }
     }
 
+    let message = target_message;
+
     // Exits early if no links are found
     if all_links.is_empty() {
         return Ok(());

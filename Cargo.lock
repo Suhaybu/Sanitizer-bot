@@ -2125,7 +2125,7 @@ dependencies = [
 
 [[package]]
 name = "sanitizer-bot"
-version = "1.3.6"
+version = "1.3.7"
 dependencies = [
  "anyhow",
  "dashmap",

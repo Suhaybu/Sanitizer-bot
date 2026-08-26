@@ -178,14 +178,14 @@ async fn handle_on_message(message: Message, client: &Client) -> anyhow::Result<
         }
         SanitizerMode::ManualMention => {
             // Early exit if not mentioned.
-            if !utils::is_bot_mentioned(&message) && message.kind != MessageType::Reply {
+            if !utils::is_bot_mentioned(&message) {
                 return Ok(());
             }
             sanitize::process_message(&message, client, Some(server_config)).await?;
         }
         SanitizerMode::ManualBoth => {
             sanitize::add_emote(&message, client).await?;
-            if !utils::is_bot_mentioned(&message) && message.kind != MessageType::Reply {
+            if !utils::is_bot_mentioned(&message) {
                 return Ok(());
             }
             sanitize::process_message(&message, client, Some(server_config)).await?;
